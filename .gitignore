@@ -1,2 +1,4 @@
 .venv
 src/__pycache__
+data/processed/*
+!data/processed/.gitkeep
