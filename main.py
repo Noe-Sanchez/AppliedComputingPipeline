@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 # Module imports
 import src.data_loader as data_loader
+import src.regression  as regression
 
 # Print colors
 bgreen = (95, 215, 0)
