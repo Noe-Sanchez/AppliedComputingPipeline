@@ -1,63 +1,82 @@
+# Overall imports
 import pandas as pd
 import numpy as np
-import pyrtklib as rtk
 import pathlib
 import math
+import os
+import cv2
+import re
 
-def load_data(obs_data_path, nav_data_path):
+def extract_frames(video_path, output_folder, frame_skip=1):
+  if not os.path.exists(output_folder):
+    os.makedirs(output_folder)
+
+  cap = cv2.VideoCapture(video_path)
+
+  if not cap.isOpened():
+    print(f"Error opening file: {video_path}")
+    return
+
+  frame_count = 0
+  saved_frames = 0
+
+  print(f"Processing '{video_path}'...")
+
+  while True:
+    ret, frame = cap.read()
+
+    if not ret:
+      break
+   
+    if frame_count % frame_skip == 0:
+      file_name = os.path.join(output_folder, f"frame_{saved_frames:04d}.jpg")
+      
+      cv2.imwrite(file_name, frame, [int(cv2.IMWRITE_JPEG_QUALITY), 100])
+      saved_frames += 1
+
+    frame_count += 1
+
+  cap.release()
+
+  print(f"Finished processing '{video_path}'. Total frames: {frame_count}, Saved frames: {saved_frames}.")
+
+def extract_telemetry(srt_file_path):
+  gen_regex = r":\s*([\d\.\-]+)" 
+
+  data = pd.DataFrame(columns=['Frame', 'rel_alt', 'latitude', 'longitude'])
+
+  try:
+    with open(srt_file_path, 'r', encoding='utf-8') as srt_file:
+      telemetry = srt_file.read()
+
+      data.loc[:, 'rel_alt']   = re.findall("rel_alt"+  gen_regex, telemetry)
+      data.loc[:, 'latitude']  = re.findall("latitude"+ gen_regex, telemetry)
+      data.loc[:, 'longitude'] = re.findall("longitude"+gen_regex, telemetry)
+      data.loc[:, 'Frame'] = range(1, len(data) + 1)
+
+      # Make columns numeric
+      data['rel_alt']   = pd.to_numeric(data['rel_alt'],   errors='coerce')
+      data['latitude']  = pd.to_numeric(data['latitude'],  errors='coerce')
+      data['longitude'] = pd.to_numeric(data['longitude'], errors='coerce')
+
+    if not data.empty:
+      return data
+    else:
+      print("No 'rel_alt' values found in the SRT file.")
+
+  except FileNotFoundError:
+    print(f"Error file not found: {srt_file_path}")
+
+def load_data(video_path, srt_file_path, dry_run=False):
   
   script_dir = pathlib.Path(__file__).parent.parent
 
-  ts = rtk.gtime_t()
-  te = rtk.gtime_t()
+  video_path    = os.path.join(script_dir, video_path)
+  srt_file_path = os.path.join(script_dir, srt_file_path)
+  output_folder = os.path.join(script_dir, 'data', 'processed') 
 
-  popt      = rtk.prcopt_default
-  popt.navsys = rtk.SYS_GPS | rtk.SYS_GLO | rtk.SYS_GAL | rtk.SYS_CMP 
-  popt.ionoopt = rtk.IONOOPT_BRDC 
-  popt.tropopt = rtk.TROPOPT_SAAS
-  popt.elmin = 15.0 * math.pi / 180.0
-
-  sopt         = rtk.solopt_t()
-  sopt.posf    = rtk.SOLF_LLH
-  sopt.outhead = 0
-  sopt.timef   = 0
-  sopt.timeu   = 3
-
-  fopt = rtk.filopt_t()
-
-  # Make logic and paths cleaner
-  infiles = [str(script_dir / obs_data_path), str(script_dir / nav_data_path)]
-  outfile = str((script_dir / obs_data_path).parent.parent.parent / "processed" / "output.pos")
-  outfile_1dchar = rtk.pyrtklib.Arr1Dchar(outfile)
-
-  pcode = rtk.postpos(ts, te, 0.0, 0.0, popt, sopt, fopt, infiles, 2, outfile_1dchar, "", "")
-
-  # Move assert to driver (?)
-  assert pcode == 0, "C1: postpos failed with code {}".format(pcode)
-
-  # Load the output file into a pandas DataFrame
-  #with open(outfile, 'r') as f:
-  f = open(outfile, 'r')
-
-  lines = f.readlines()
-  
-  # Ignore first line
-  lines = lines[1:]
-
-  # Load only first 4 n-whitespace-separated columns into a DataFrame
-  data_lines = [line.split()[1:5] for line in lines]
-  
-  # Initialize time and height w.r.t the first value of each
-  first_time = float(data_lines[0][0])
-  first_height = float(data_lines[0][3])
-
-  for line in data_lines:
-    line[0] = float(line[0]) - first_time
-    line[3] = float(line[3]) - first_height
-  
-  # Load into DataFrame
-  data = pd.DataFrame(data_lines, columns=['time', 'lat', 'lon', 'height'])
-
-  f.close()
+  if not dry_run:
+    extract_frames(video_path, output_folder)
+  data = extract_telemetry(srt_file_path)
 
   return data
