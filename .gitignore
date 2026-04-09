@@ -1,2 +1,5 @@
 .venv
+*.blend
+src/optimizer/data/
+src/optimizer/report/figures/
 **/__pycache__
