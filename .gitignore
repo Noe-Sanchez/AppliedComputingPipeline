@@ -1,4 +1,7 @@
 .venv
-src/__pycache__
+*.blend
+src/optimizer/data/
+src/optimizer/report/figures/
+**/__pycache__
 data/processed/*
 !data/processed/.gitkeep
