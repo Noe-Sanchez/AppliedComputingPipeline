@@ -113,7 +113,7 @@ python3 optimizer.py regen
 
 Runs `get_tree_poses.py` inside Blender in background mode, rewriting
 `sphere_positions.csv` from the current state of `gs.blend`. Useful after
-editing the orchard scene.
+editing the orchard scene. Because of its size, and no further iterations planned for the future, this file is not contained in this repository, if you wish to edit it, you can download it [here](https://tecmx-my.sharepoint.com/:u:/g/personal/a01552369_tec_mx/IQBBfzLVxqLMR40kvKKgtZHeAZlEvmoVaG5GAA2Gt2O3-WU?e=Ai6vqG), and place it accordingly to the [Repository Layout](#repository-layout) section.
 
 The wrapper looks for Blender in this order:
 
