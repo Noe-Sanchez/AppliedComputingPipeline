@@ -9,12 +9,8 @@ Pipeline: build distance matrix -> nearest-neighbour init -> 2-opt local search.
 
 import numpy as np
 import pandas as pd
-import matplotlib
-
-matplotlib.use("TkAgg")
-import matplotlib.pyplot as plt
 from pathlib import Path
-
+import matplotlib.pyplot as plt
 
 # ---------------------------------------------------------------------------
 # Distance matrix
@@ -110,9 +106,73 @@ def two_opt(
 
 
 # ---------------------------------------------------------------------------
-# Visualisation
+# Main entry point
 # ---------------------------------------------------------------------------
 
+def run_global_planner(
+    csv_path: str = "data/raw/tree_poses.csv",
+    figures_dir: str = "report/figures",
+    processed_dir: str = "data/processed",
+) -> dict:
+    """Load tree poses, solve the TSP, save the ordered waypoints, return results."""
+    print("\n[global_planner] Loading tree poses …")
+    df = pd.read_csv(csv_path)
+    assert not df.empty, "CSV file is empty."
+    assert {"name", "x", "y", "z"}.issubset(df.columns), \
+        "CSV must contain columns: name, x, y, z."
+
+    names = df["name"].tolist()
+    poses = df[["x", "y", "z"]].to_numpy(dtype=float)
+
+    assert poses.shape[0] >= 2, "Need at least 2 trees."
+    assert np.all(np.isfinite(poses)), "Poses contain NaN or Inf values."
+
+    print(f"  Loaded {len(names)} trees.")
+
+    dist_matrix = build_distance_matrix(poses)
+    print(
+        f"  Distance matrix: {dist_matrix.shape}  "
+        f"max={dist_matrix.max():.4f} m  mean={dist_matrix.mean():.4f} m"
+    )
+
+    nn_tour = nearest_neighbour_tour(dist_matrix, start=0)
+    nn_length = tour_length(nn_tour, dist_matrix)
+    print(f"  Nearest-neighbour tour length : {nn_length:.4f} m")
+
+    opt_tour, history = two_opt(nn_tour, dist_matrix)
+    opt_length = tour_length(opt_tour, dist_matrix)
+    improvement = 100 * (nn_length - opt_length) / nn_length
+    print(
+        f"  2-opt tour length             : {opt_length:.4f} m  "
+        f"({improvement:.1f}% improvement)"
+    )
+
+    # Save ordered waypoints
+    Path(figures_dir).mkdir(parents=True, exist_ok=True)
+    ordered_df = pd.DataFrame({
+        "visit_order": range(len(opt_tour)),
+        "node_index": opt_tour,
+        "name": [names[i] for i in opt_tour],
+        "x": [poses[i, 0] for i in opt_tour],
+        "y": [poses[i, 1] for i in opt_tour],
+        "z": [poses[i, 2] for i in opt_tour],
+    })
+    wp_path = f"{figures_dir}/ordered_waypoints.csv"
+    ordered_df.to_csv(wp_path, index=False)
+    print(f"  Ordered waypoints saved → {wp_path}")
+   
+    plot_convergence(history, f"{figures_dir}/global_convergence.png")
+    plot_tour_3d(poses, opt_tour, names, f"{figures_dir}/global_tour_3d.png")
+
+    return {
+        "tour": opt_tour,
+        "poses": poses,
+        "names": names,
+        "dist_matrix": dist_matrix,
+        "nn_length": nn_length,
+        "opt_length": opt_length,
+        "history": history,
+    }
 
 def plot_convergence(history: list[float], output_path: str) -> None:
     """Plot tour length vs. improving swap index."""
@@ -184,77 +244,6 @@ def plot_tour_3d(
     fig.savefig(output_path, dpi=150)
     plt.close(fig)
     print(f"  [global_planner] 3-D tour plot saved → {output_path}")
-
-
-# ---------------------------------------------------------------------------
-# Main entry point
-# ---------------------------------------------------------------------------
-
-
-def run_global_planner(
-    csv_path: str = "data/raw/tree_poses.csv",
-    figures_dir: str = "report/figures",
-    processed_dir: str = "data/processed",
-) -> dict:
-    """Load tree poses, solve the TSP, save the ordered waypoints, return results."""
-    print("\n[global_planner] Loading tree poses …")
-    df = pd.read_csv(csv_path)
-    assert not df.empty, "CSV file is empty."
-    assert {"name", "x", "y", "z"}.issubset(df.columns), \
-        "CSV must contain columns: name, x, y, z."
-
-    names = df["name"].tolist()
-    poses = df[["x", "y", "z"]].to_numpy(dtype=float)
-
-    assert poses.shape[0] >= 2, "Need at least 2 trees."
-    assert np.all(np.isfinite(poses)), "Poses contain NaN or Inf values."
-
-    print(f"  Loaded {len(names)} trees.")
-
-    dist_matrix = build_distance_matrix(poses)
-    print(
-        f"  Distance matrix: {dist_matrix.shape}  "
-        f"max={dist_matrix.max():.4f} m  mean={dist_matrix.mean():.4f} m"
-    )
-
-    nn_tour = nearest_neighbour_tour(dist_matrix, start=0)
-    nn_length = tour_length(nn_tour, dist_matrix)
-    print(f"  Nearest-neighbour tour length : {nn_length:.4f} m")
-
-    opt_tour, history = two_opt(nn_tour, dist_matrix)
-    opt_length = tour_length(opt_tour, dist_matrix)
-    improvement = 100 * (nn_length - opt_length) / nn_length
-    print(
-        f"  2-opt tour length             : {opt_length:.4f} m  "
-        f"({improvement:.1f}% improvement)"
-    )
-
-    # Save ordered waypoints
-    Path(processed_dir).mkdir(parents=True, exist_ok=True)
-    ordered_df = pd.DataFrame({
-        "visit_order": range(len(opt_tour)),
-        "node_index": opt_tour,
-        "name": [names[i] for i in opt_tour],
-        "x": [poses[i, 0] for i in opt_tour],
-        "y": [poses[i, 1] for i in opt_tour],
-        "z": [poses[i, 2] for i in opt_tour],
-    })
-    wp_path = f"{processed_dir}/ordered_waypoints.csv"
-    ordered_df.to_csv(wp_path, index=False)
-    print(f"  Ordered waypoints saved → {wp_path}")
-
-    plot_convergence(history, f"{figures_dir}/global_convergence.png")
-    plot_tour_3d(poses, opt_tour, names, f"{figures_dir}/global_tour_3d.png")
-
-    return {
-        "tour": opt_tour,
-        "poses": poses,
-        "names": names,
-        "dist_matrix": dist_matrix,
-        "nn_length": nn_length,
-        "opt_length": opt_length,
-        "history": history,
-    }
 
 
 if __name__ == "__main__":

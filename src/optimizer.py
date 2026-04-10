@@ -33,7 +33,7 @@ sys.path.insert(0, str(PKG_DIR))
 
 def run(
     clearance: float = 5.0,
-    n_waypoints: int = 12,
+    n_waypoints: int = 8,
     smoothness: float = 0.5,
     csv: str = "sphere_positions.csv",
     figures_dir: str = "report/figures",
@@ -81,10 +81,23 @@ def run(
         )
 
         return {
-            "tour": global_result["tour"],
+            "opt_tour": global_result["tour"],
+            "global_poses": global_result["poses"],
+            "names": global_result["names"],
+            "dist_matrix": global_result["dist_matrix"],
             "nn_length": global_result["nn_length"],
             "opt_length": global_result["opt_length"],
+            "history": global_result["history"],
+
             "full_trajectory": local_result["full_trajectory"],
+            "history_labels": local_result["history_labels"],
+            "trees": local_result["trees"],
+            "waypoints": local_result["waypoints"],
+            "local_poses": local_result["poses"],
+            "tour": local_result["tour"],
+            "figures_dir": local_result["figures_dir"],
+            "clearance": local_result["clearance"],
+            "all_histories": local_result["all_histories"],
             "segment_lengths": local_result["segment_lengths"],
             "takeoff_xyz": local_result["takeoff_xyz"],
         }

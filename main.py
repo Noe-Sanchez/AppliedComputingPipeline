@@ -85,7 +85,7 @@ def main():
       bblue,
   ))
 
-  optimizer.run(clearance=optimal_height)
+  opt_result = optimizer.run(clearance=optimal_height)
 
   print(tc.colored("Plotting results...", bgreen))
 
@@ -93,7 +93,25 @@ def main():
   data_dict = {
     "flight_data": flight_data,
     "im_data": im_data,
-    "regression_fits": regression_fits
+    "regression_fits": regression_fits,
+    "opt_tour": opt_result["opt_tour"],
+    "global_poses": opt_result["global_poses"],
+    "names": opt_result["names"],
+    "dist_matrix": opt_result["dist_matrix"],
+    "nn_length": opt_result["nn_length"],
+    "opt_length": opt_result["opt_length"],
+    "history": opt_result["history"],
+    "full_trajectory": opt_result["full_trajectory"],
+    "history_labels": opt_result["history_labels"],
+    "trees": opt_result["trees"],
+    "waypoints": opt_result["waypoints"],
+    "local_poses": opt_result["local_poses"],
+    "tour": opt_result["tour"],
+    "figures_dir": opt_result["figures_dir"],
+    "clearance": opt_result["clearance"],
+    "all_histories": opt_result["all_histories"],
+    "segment_lengths": opt_result["segment_lengths"],
+    "takeoff_xyz": opt_result["takeoff_xyz"],
   }
     
   viz.generate_report(data_dict)
