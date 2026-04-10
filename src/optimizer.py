@@ -53,7 +53,15 @@ def run(
         segment_lengths : list[float]      — per-segment lengths (m)
         takeoff_xyz     : np.ndarray (3,)  — chosen takeoff/landing point
     """
-    # Work from inside optimizer/ so relative paths resolve correctly.
+    figures_dir = str(Path(figures_dir).resolve())
+    processed_dir = str(Path(processed_dir).resolve())
+
+    if not Path(csv).is_absolute() and Path(csv).exists():
+        csv = str(Path(csv).resolve())
+    elif not Path(csv).is_absolute():
+        # Fall back to the bundled CSV inside src/optimizer/.
+        csv = str(PKG_DIR / csv)
+
     prev_cwd = os.getcwd()
     os.chdir(PKG_DIR)
     try:

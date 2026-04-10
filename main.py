@@ -85,7 +85,9 @@ def main():
       bblue,
   ))
 
-  opt_result = optimizer.run(clearance=optimal_height)
+  opt_result = optimizer.run(figures_dir = "report/figures", 
+                             processed_dir = "data/processed",
+                             clearance=optimal_height)
 
   print(tc.colored("Plotting results...", bgreen))
 

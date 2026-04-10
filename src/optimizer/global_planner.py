@@ -148,7 +148,7 @@ def run_global_planner(
     )
 
     # Save ordered waypoints
-    Path(figures_dir).mkdir(parents=True, exist_ok=True)
+    Path(processed_dir).mkdir(parents=True, exist_ok=True)
     ordered_df = pd.DataFrame({
         "visit_order": range(len(opt_tour)),
         "node_index": opt_tour,
@@ -157,7 +157,7 @@ def run_global_planner(
         "y": [poses[i, 1] for i in opt_tour],
         "z": [poses[i, 2] for i in opt_tour],
     })
-    wp_path = f"{figures_dir}/ordered_waypoints.csv"
+    wp_path = f"{processed_dir}/ordered_waypoints.csv"
     ordered_df.to_csv(wp_path, index=False)
     print(f"  Ordered waypoints saved → {wp_path}")
    

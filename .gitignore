@@ -2,6 +2,8 @@
 *.blend
 src/optimizer/data/
 src/optimizer/report/figures/
+report/figures/*.png
+report/figures/*.gif
 **/__pycache__
 data/processed/*
 !data/processed/.gitkeep
