@@ -7,6 +7,7 @@ import numpy as np
 # Module imports
 import src.data_loader as data_loader
 import src.regression  as regression
+import src.optimizer   as optimizer
 import src.viz         as viz
 
 # Print colors
@@ -43,6 +44,8 @@ def main():
 
   # Generate fits
   regression_fits = []
+  best_fit_idx = -1
+  best_r2 = 0
 
   # Data for fits
   variances = [x[1] for x in im_data[:800]]
@@ -50,9 +53,40 @@ def main():
 
   for i in range(4):
     fit = regression.fit_regression(altitudes, variances, i+1)
+    if fit[1] > best_r2:
+        best_r2 = fit[1]  # fit[1] = r_squared
+        best_fit_idx = i
     regression_fits.append(fit)
 
   print(tc.colored("Regression analysis completed!", bblue))
+
+  # Optimization
+  # --- Find the altitude that minimises fitted variance ---
+  best_coeffs = regression_fits[best_fit_idx][0]  # np.polyfit order: highest degree first
+
+  # Search window = the altitude range actually observed in the flight.
+  alt_min, alt_max = 10.0, 32.5
+
+  # Analytic roots of the derivative (critical points).
+  deriv = np.polyder(best_coeffs)
+  crit = np.roots(deriv) if len(deriv) > 0 else np.array([])
+  crit = crit[np.isreal(crit)].real                    # drop complex roots
+  crit = crit[(crit >= alt_min) & (crit <= alt_max)]   # keep in-range
+
+  # Candidates: critical points + the two endpoints.
+  candidates = np.concatenate([crit, [alt_min, alt_max]])
+  values = np.polyval(best_coeffs, candidates)
+  studied_tree_height = 8.7
+  optimal_height = float(candidates[np.argmin(values)]) - studied_tree_height
+
+  print(tc.colored(
+      f"Optimal relative altitude (min variance): {optimal_height:.2f} m "
+      f"(variance = {values.min():.4f})",
+      bblue,
+  ))
+
+  optimizer.run(clearance=optimal_height)
+
   print(tc.colored("Plotting results...", bgreen))
 
   # Create data dict for viz
