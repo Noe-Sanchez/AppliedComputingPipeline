@@ -1,10 +1,13 @@
 # QoL imports
 import termcolor as tc
 import matplotlib.pyplot as plt
+import pickle
+import numpy as np
 
 # Module imports
 import src.data_loader as data_loader
 import src.regression  as regression
+import src.viz         as viz
 
 # Print colors
 bgreen = (95, 215, 0)
@@ -17,26 +20,51 @@ def main():
   video_path = "data/raw/flight.mp4"
   srt_path   = "data/raw/flight.srt"
 
-  flight_data = data_loader.load_data(video_path, srt_path)
-  # For dry run
-  #flight_data = data_loader.load_data(video_path, srt_path, True)
+  flight_data = data_loader.load_data(video_path, srt_path, True)
 
   if flight_data is None:
     print(tc.colored("Failed to load flight data.", (255, 0, 0)))
     return
   
   print(tc.colored("Flight data loaded successfully!", bblue))
+  print(tc.colored("Performing regression analysis...", bgreen))
 
-  print(flight_data)
+  # Check if im_data.pkl exists, if not create it
+  try:
+    with open('im_data.pkl', 'rb') as f:
+      im_data = pickle.load(f)
+    print(tc.colored("Loaded im_data of C5 from pickle.", bblue))
+  except FileNotFoundError:
+    print(tc.colored("im_data.pkl not found. Mocking im_data...", bgreen))
+    im_data = regression.mock_data()
+    with open('im_data.pkl', 'wb') as f:
+      pickle.dump(im_data, f)
+    print(tc.colored("C5 im_data mocked and saved to pickle.", bblue))
 
-  # Flight data is a pandas DataFrame, and has rel_alt, Frame, latitude, longitude 
-  plt.figure(figsize=(10, 6))
-  plt.plot(flight_data['Frame'], flight_data['rel_alt'], label='Relative Altitude', color='blue')
-  plt.xlabel('Frame')
-  plt.ylabel('Relative Altitude (m)')
-  plt.title('Relative Altitude over Time')
-  plt.yticks([i for i in range(0, int(float(flight_data['rel_alt'].max())) + 10, 10)])
-  plt.savefig('relative_altitude.png')
+  # Generate fits
+  regression_fits = []
+
+  # Data for fits
+  variances = [x[1] for x in im_data[:800]]
+  altitudes = [flight_data['rel_alt'][i] for i in range(800)] 
+
+  for i in range(4):
+    fit = regression.fit_regression(variances, altitudes, i+1)
+    regression_fits.append(fit)
+
+  print(tc.colored("Regression analysis completed!", bblue))
+  print(tc.colored("Plotting results...", bgreen))
+
+  # Create data dict for viz
+  data_dict = {
+    "flight_data": flight_data,
+    "im_data": im_data,
+    "regression_fits": regression_fits
+  }
+    
+  viz.generate_report(data_dict)
+
+  print(tc.colored("Report generated successfully!", bblue))
 
 if __name__ == "__main__":
   main()
