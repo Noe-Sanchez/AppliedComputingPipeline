@@ -9,6 +9,8 @@ def generate_report(module_data):
 
   rel_alts  = [flight_data['rel_alt'][i] for i in range(800)]
   variances = [im_data[i][1] for i in range(800)]
+  max_variance = max(variances)
+  variances = [v / max_variance for v in variances]
 
   # Flight data is a pandas DataFrame, and has rel_alt, Frame, latitude, longitude 
   plt.figure(figsize=(10, 6))

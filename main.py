@@ -49,7 +49,7 @@ def main():
   altitudes = [flight_data['rel_alt'][i] for i in range(800)] 
 
   for i in range(4):
-    fit = regression.fit_regression(variances, altitudes, i+1)
+    fit = regression.fit_regression(altitudes, variances, i+1)
     regression_fits.append(fit)
 
   print(tc.colored("Regression analysis completed!", bblue))
