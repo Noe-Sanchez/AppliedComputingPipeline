@@ -13,3 +13,12 @@ python-dateutil==2.9.0.post0
 six==1.17.0
 termcolor==3.3.0
 scipy==1.16
+torch==2.11.0+cu126
+pycparser==2.23
+scikit-learn==1.8.0
+joblib==1.5.3
+tqdm==4.67.1
+tifffile==2026.3.3
+gradio_imageslider==0.0.20
+gradio==6.11.0
+torchvision==2.11.0+cu126
