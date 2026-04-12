@@ -33,7 +33,7 @@ sys.path.insert(0, str(PKG_DIR))
 
 def run(
     clearance: float = 5.0,
-    n_waypoints: int = 12,
+    n_waypoints: int = 8,
     smoothness: float = 0.5,
     csv: str = "sphere_positions.csv",
     figures_dir: str = "report/figures",
@@ -53,7 +53,15 @@ def run(
         segment_lengths : list[float]      — per-segment lengths (m)
         takeoff_xyz     : np.ndarray (3,)  — chosen takeoff/landing point
     """
-    # Work from inside optimizer/ so relative paths resolve correctly.
+    figures_dir = str(Path(figures_dir).resolve())
+    processed_dir = str(Path(processed_dir).resolve())
+
+    if not Path(csv).is_absolute() and Path(csv).exists():
+        csv = str(Path(csv).resolve())
+    elif not Path(csv).is_absolute():
+        # Fall back to the bundled CSV inside src/optimizer/.
+        csv = str(PKG_DIR / csv)
+
     prev_cwd = os.getcwd()
     os.chdir(PKG_DIR)
     try:
@@ -81,10 +89,23 @@ def run(
         )
 
         return {
-            "tour": global_result["tour"],
+            "opt_tour": global_result["tour"],
+            "global_poses": global_result["poses"],
+            "names": global_result["names"],
+            "dist_matrix": global_result["dist_matrix"],
             "nn_length": global_result["nn_length"],
             "opt_length": global_result["opt_length"],
+            "history": global_result["history"],
+
             "full_trajectory": local_result["full_trajectory"],
+            "history_labels": local_result["history_labels"],
+            "trees": local_result["trees"],
+            "waypoints": local_result["waypoints"],
+            "local_poses": local_result["poses"],
+            "tour": local_result["tour"],
+            "figures_dir": local_result["figures_dir"],
+            "clearance": local_result["clearance"],
+            "all_histories": local_result["all_histories"],
             "segment_lengths": local_result["segment_lengths"],
             "takeoff_xyz": local_result["takeoff_xyz"],
         }
